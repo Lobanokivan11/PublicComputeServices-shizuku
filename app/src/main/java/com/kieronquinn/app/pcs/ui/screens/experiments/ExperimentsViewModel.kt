@@ -55,6 +55,7 @@ abstract class ExperimentsViewModel: ViewModel() {
     abstract fun onPsiForceAdminAllowanceChanged(enabled: Boolean)
 
     abstract fun onAsNowPlayingChanged(enabled: Boolean)
+    abstract fun onAsForceGSAChanged(enabled: Boolean)
 
     abstract fun onPhoneEnabledChanged(enabled: Boolean)
     abstract fun onTtsEnabledChanged(enabled: Boolean)
@@ -368,6 +369,12 @@ class ExperimentsViewModelImpl(
     override fun onAsNowPlayingChanged(enabled: Boolean) {
         viewModelScope.launch {
             propertiesRepository.setAsNowPlayingNotificationEnabled(enabled)
+        }
+    }
+
+    override fun onAsForceGSAChanged(enabled: Boolean) {
+        viewModelScope.launch {
+            propertiesRepository.setAsForceGSAEnabled(enabled)
         }
     }
 

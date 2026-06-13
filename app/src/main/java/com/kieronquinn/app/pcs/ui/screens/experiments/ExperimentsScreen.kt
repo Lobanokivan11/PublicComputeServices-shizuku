@@ -67,6 +67,7 @@ private data class Interactions(
     val onPsiForceAccountTypeChanged: (Boolean) -> Unit,
     val onPsiForceAdminAllowanceChanged: (Boolean) -> Unit,
     val onAsNowPlayingChanged: (Boolean) -> Unit,
+    val onAsForceGSAChanged: (Boolean) -> Unit,
     val onClearMddClicked: () -> Unit,
     val onPhoneEnabledChanged: (Boolean) -> Unit,
     val onTtsEnabledChanged: (Boolean) -> Unit,
@@ -95,6 +96,7 @@ private data class Interactions(
             onPsiForceAccountTypeChanged = {},
             onPsiForceAdminAllowanceChanged = {},
             onAsNowPlayingChanged = {},
+            onAsForceGSAChanged = {},
             onClearMddClicked = {},
             onPhoneEnabledChanged = {},
             onTtsEnabledChanged = {},
@@ -129,6 +131,7 @@ fun ExperimentsScreen() = ProvidePreferenceLocals {
         onPsiForceAccountTypeChanged = viewModel::onPsiForceAccountTypeChanged,
         onPsiForceAdminAllowanceChanged = viewModel::onPsiForceAdminAllowanceChanged,
         onAsNowPlayingChanged = viewModel::onAsNowPlayingChanged,
+        onAsForceGSAChanged = viewModel::onAsForceGSAChanged,
         onClearMddClicked = viewModel::onClearMddClicked,
         onPhoneEnabledChanged = viewModel::onPhoneEnabledChanged,
         onTtsEnabledChanged = viewModel::onTtsEnabledChanged,
@@ -740,7 +743,7 @@ private fun LoadedContent(state: State.Loaded, interactions: Interactions) {
             preferenceCategory(
                 key = "category_as",
                 title = {
-                    Text(stringResource(R.string.screen_experiments_category_as))
+                    Text(stringResource(R.string.screen_experiments_category_now_playing))
                 }
             )
 
@@ -764,6 +767,33 @@ private fun LoadedContent(state: State.Loaded, interactions: Interactions) {
                 onValueChange = interactions.onAsNowPlayingChanged
             )
         }
+
+        preferenceCategory(
+            key = "category_aag",
+            title = {
+                Text(stringResource(R.string.screen_experiments_category_glance))
+            }
+        )
+
+        val nowPlayingShape = Shape(1, 0)
+        switchPreference(
+            modifier = Modifier
+                .padding(horizontal = 8.dp)
+                .background(color = surface, shape = nowPlayingShape)
+                .clip(nowPlayingShape),
+            value = state.propertiesState.asForceGSAEnabled,
+            key = "as_aag",
+            title = {
+                Text(
+                    text = stringResource(R.string.screen_experiments_as_force_gsa_title),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            },
+            summary = {
+                Text(text = textResource(R.string.screen_experiments_as_force_gsa_content))
+            },
+            onValueChange = interactions.onAsForceGSAChanged
+        )
 
         preferenceCategory(
             key = "category_advanced",

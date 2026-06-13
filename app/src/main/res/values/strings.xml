@@ -112,9 +112,13 @@
     <string name="screen_experiments_psi_force_admin_allowance_title">Disable Admin Restrictions</string>
     <string name="screen_experiments_psi_force_admin_allowance_content">Allow Magic Cue to work if your device administrator has disallowed content suggestions and content capture\n<b>Note:</b> I take no responsibility if this gets you fired, use at your own risk.</string>
 
-    <string name="screen_experiments_category_as">Now Playing</string>
+    <string name="screen_experiments_category_now_playing">Now Playing</string>
     <string name="screen_experiments_as_show_notification_title">Now Playing Notification</string>
     <string name="screen_experiments_as_show_notification_content">Show notification of currently detected song, which was removed with new Now Playing. This will also make Now Playing History apps work again.</string>
+
+    <string name="screen_experiments_category_glance">At a Glance</string>
+    <string name="screen_experiments_as_force_gsa_title">Disable Google App Check</string>
+    <string name="screen_experiments_as_force_gsa_content">Some At a Glance options, such as Sport and Finance, require the search box provider to be set to the Google App, enable this option to disable that check to allow them to work while other search providers are in use.</string>
 
     <string name="screen_experiments_category_advanced">Advanced</string>
     <string name="screen_experiments_enable_phone_title">Handle Phone Manifests</string>

@@ -34,8 +34,8 @@ private fun getLocalProperties(): Properties? {
 
 val currentLocalProperties = getLocalProperties()
 
-val tagName = "1.0.4"
-val tagCode = 104
+val tagName = "1.0.5"
+val tagCode = 105
 
 android {
     namespace = "com.kieronquinn.app.pcs"

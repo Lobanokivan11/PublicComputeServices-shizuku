@@ -49,17 +49,12 @@ object PhoneHooks: GrpcHooks() {
         if (settings.patrickPhase > PatrickPhase.DISABLED) {
             hookPatrick(dexKit)
         }
+        if (settings.fermatEnabled && settings.callRecordingEnabled) {
+            hookCallRecording(dexKit)
+        }
     }
 
     private fun LoadPackageParam.hookFlagDataStore(dexKit: DexKitBridge, settings: PhoneSettings) {
-        val flagDataStore = dexKit.findClass {
-            matcher {
-                usingStrings("phenotypeServerTokens")
-            }
-        }.singleOrNull()?.getInstance(classLoader) ?: run {
-            log("Unable to find Flag DataStore")
-            return
-        }
         val flagValueHolder = dexKit.findClass {
             matcher {
                 usingStrings("null cannot be cast to non-null type T of com.google.apps.tiktok.experiments.FlagValueHolder.getProtoValue")
@@ -77,23 +72,15 @@ object PhoneHooks: GrpcHooks() {
             log("Unable to find FlagValueHolder proto method")
             return
         }
-        var hasHookedCreator = false
-        XposedHelpers.findAndHookConstructor(
-            flagDataStore,
-            Object::class.java,
-            ByteArray::class.java,
-            object: XC_MethodHook() {
-                override fun afterHookedMethod(param: MethodHookParam) {
-                    if (hasHookedCreator) return
-                    val creator = XposedHelpers
-                        .callMethod(param.args[0], "a")::class.java
-                    if (creator != java.lang.Boolean::class.java) {
-                        hasHookedCreator = true
-                        hookFlagCreator(creator, flagValueHolderClass)
-                    }
-                }
+        val flagDataStore = dexKit.findMethod {
+            matcher {
+                usingStrings("mendelPackage", "Unknown package ")
             }
-        )
+        }.singleOrNull()?.declaredClass?.getInstance(classLoader) ?: run {
+            log("Unable to find Flag DataStore")
+            return
+        }
+        hookFlagCreator(flagDataStore, flagValueHolderClass)
         hookFlagValueHolder(flagValueHolderClass, flagValueHolderProtoMethod, settings)
     }
 
@@ -107,13 +94,14 @@ object PhoneHooks: GrpcHooks() {
             log("Unable to find creator method for flags")
             return
         }
-        log("Creator method: ${creatorMethod.declaringClass.name}.${creatorMethod.name}(${creatorMethod.parameterTypes.joinToString(", ") { it.name }})")
+        log("Creator ${creator.name} method: ${creatorMethod.declaringClass.name}.${creatorMethod.name}(${creatorMethod.parameterTypes.joinToString(", ") { it.name }})")
         XposedBridge.hookMethod(creatorMethod, object: XC_MethodHook() {
             override fun afterHookedMethod(param: MethodHookParam) {
                 PhoneFlag.getOrNull(
                     param.args[0] as String,
                     param.args[1] as String
                 )?.let {
+                    log("Overriding ${it.name} -> ${flagOverrides[it]}")
                     flagOverrides[it] = param.result
                 }
             }
@@ -177,6 +165,29 @@ object PhoneHooks: GrpcHooks() {
                 objectField.set(param.args[0], true)
             }
         })
+    }
+
+    /**
+     *  Call recording is particularly annoying to get to behave when Call Notes are enabled, so
+     *  force it
+     */
+    private fun LoadPackageParam.hookCallRecording(dexKit: DexKitBridge) {
+        val callRecordingClass = dexKit.findClass {
+            matcher {
+                usingStrings("Call recording is enabled by call_recording_audio system feature")
+            }
+        }.singleOrNull()?.getInstance(classLoader) ?: run {
+            log("Unable to find Call Recording class")
+            return
+        }
+        XposedHelpers.findAndHookMethod(
+            callRecordingClass,
+            "a",
+            object: XC_MethodHook() {
+                override fun beforeHookedMethod(param: MethodHookParam) {
+                    param.result = true
+                }
+            })
     }
 
     private fun PhoneFlag.getValueOrNull(originalValue: Any?, settings: PhoneSettings): Any? {
