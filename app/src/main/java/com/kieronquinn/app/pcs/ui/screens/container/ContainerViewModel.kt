@@ -36,7 +36,6 @@ class ContainerViewModelImpl(
     ) { xposedState, phenotype ->
         when {
             xposedState is XposedState.Unavailable -> Destination.Error(Type.NO_XPOSED)
-            phenotype is PhenotypeState.Unavailable -> Destination.Error(Type.NO_ROOT)
             xposedState is XposedState.Loading || phenotype !is PhenotypeState.Loaded -> null
             phenotype.repository == null -> Destination.EnterBaseURL
             phenotype.labels == null -> Destination.SelectBuildLabel

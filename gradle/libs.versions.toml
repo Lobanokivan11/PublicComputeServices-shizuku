@@ -22,6 +22,7 @@ tink = "1.20.0"
 xposed = "82"
 annotatedText = "1.0.3"
 cardShape = "1.0.0"
+shizuku = "13.1.5"
 materialMotionComposeCore = "2.0.1"
 accompanistPermissions = "0.37.3"
 aboutLibraries = "13.2.1"
@@ -38,6 +39,8 @@ androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", vers
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 compose-preferences = { group = "me.zhanghai.compose.preference", name = "preference", version.ref = "composePreferences" }
 dexkit = { module = "org.luckypray:dexkit", version.ref = "dexkit" }
+shizuku-api = { group = "dev.rikka.shizuku", name = "api", version.ref = "shizuku" }
+shizuku-provider = { group = "dev.rikka.shizuku", name = "provider", version.ref = "shizuku" }
 koin-bom = { group = "io.insert-koin", name = "koin-bom", version.ref = "koin" }
 koin-core = { group = "io.insert-koin", name = "koin-core" }
 koin-android = { group = "io.insert-koin", name = "koin-android" }

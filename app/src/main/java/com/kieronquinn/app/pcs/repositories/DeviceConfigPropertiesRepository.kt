@@ -8,6 +8,10 @@ import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import rikka.shizuku.Shizuku
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.File
 
 /**
  *  Uses libsu to get/override/clear DeviceConfig and SystemProperties entries. Due to the backend
@@ -99,6 +103,31 @@ class DeviceConfigPropertiesRepositoryImpl(context: Context) : DeviceConfigPrope
     private var _shell: Shell? = null
     private val packageManager = context.packageManager
 
+    private fun runShizukuCommands(commands: List<String>, outLines: ArrayList<String>? = null): Boolean {
+        if (!Shizuku.pingBinder()) return false
+            if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) return false
+
+                return try {
+                    val joinedCommands = commands.joinToString("\n")
+                    val process = Shizuku.newProcess(arrayOf("sh", "-c", joinedCommands), null, null)
+
+                    outLines?.let { list ->
+                        BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+                            var line: String?
+                            while (reader.readLine().also { line = it } != null) {
+                                list.add(line!!)
+                            }
+                        }
+                    }
+
+                    process.waitFor()
+                    process.exitValue() == 0
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    false
+                }
+    }
+
     private val shell
         get() = _shell ?: run {
             Shell.Builder.create().setFlags(Shell.FLAG_MOUNT_MASTER).build().also {
@@ -108,55 +137,45 @@ class DeviceConfigPropertiesRepositoryImpl(context: Context) : DeviceConfigPrope
 
     override suspend fun isAvailable(): Boolean {
         return withContext(Dispatchers.IO) {
-            ArrayList<String>().also {
-                shell.newJob().add("whoami").to(it).exec()
-            }.firstOrNull() == "root"
-        }.also {
-            if(!it) {
-                // If we don't have root, always clear the shell for the next retry
-                _shell?.close()
-                _shell = null
-            }
+            val out = ArrayList<String>()
+            val success = runShizukuCommands(listOf("whoami"), out)
+            success && out.firstOrNull()?.trim() == "shell"
         }
     }
 
     override suspend fun getConfig(namespace: String): List<DeviceConfigEntry> {
         return withContext(Dispatchers.IO) {
-            ArrayList<String>().also {
-                shell.newJob().add("$LIST $namespace").to(it).exec()
-            }.parseNamespaceOutput(namespace)
+            val out = ArrayList<String>()
+            runShizukuCommands(listOf("$LIST $namespace"), out)
+            out.parseNamespaceOutput(namespace)
         }
     }
 
     override suspend fun overrideConfig(entries: List<DeviceConfigEntry>) {
-        withContext(Dispatchers.IO) {
-            shell.newJob().apply {
-                entries.forEach {
-                    add("$OVERRIDE ${it.namespace} ${it.flag} ${it.value}")
-                }
-            }.exec()
-        }
+        if (entries.isEmpty()) return
+            withContext(Dispatchers.IO) {
+                val commands = entries.map { "$OVERRIDE ${it.namespace} ${it.flag} ${it.value}" }
+                runShizukuCommands(commands)
+            }
     }
 
     override suspend fun clearConfigOverrides(entries: List<DeviceConfigEntry>) {
-        withContext(Dispatchers.IO) {
-            shell.newJob().apply {
-                entries.forEach {
-                    add("$CLEAR ${it.namespace} ${it.flag}")
-                }
-            }.exec()
-        }
+        if (entries.isEmpty()) return
+            withContext(Dispatchers.IO) {
+                val commands = entries.map { "$CLEAR ${it.namespace} ${it.flag}" }
+                runShizukuCommands(commands)
+            }
     }
 
     override suspend fun setProperty(name: String, value: String) {
         withContext(Dispatchers.IO) {
-            shell.newJob().add("setprop $name $value").exec()
+            runShizukuCommands(listOf("setprop $name $value"))
         }
     }
 
     override suspend fun forceStopPackage(packageName: String) {
         withContext(Dispatchers.IO) {
-            shell.newJob().add("am force-stop $packageName").exec()
+            runShizukuCommands(listOf("am force-stop $packageName"))
         }
     }
 
@@ -168,18 +187,22 @@ class DeviceConfigPropertiesRepositoryImpl(context: Context) : DeviceConfigPrope
             } catch (e: PackageManager.NameNotFoundException) {
                 return@withContext
             }
-            shell.newJob().add("rm ${sharedPrefsDir.absolutePath}/gms_icing_mdd_*.xml").exec()
-            forceStopPackage(packageName)
+            val commands = listOf(
+                "rm ${sharedPrefsDir.absolutePath}/gms_icing_mdd_*.xml",
+                "am force-stop $packageName"
+            )
+            runShizukuCommands(commands)
         }
     }
 
     private fun ArrayList<String>.parseNamespaceOutput(namespace: String): List<DeviceConfigEntry> {
         return mapNotNull {
-            if(!it.contains(SPLIT)) return@mapNotNull null
-            it.split(SPLIT).let { pair ->
-                DeviceConfigEntry(namespace, pair[0], pair[1])
-            }
+            if (!it.contains(SPLIT)) return@mapNotNull null
+                it.split(SPLIT).let { pair ->
+                    val flag = pair[0]
+                    val value = pair.drop(1).joinToString(SPLIT)
+                    DeviceConfigEntry(namespace, flag, value)
+                }
         }
     }
-
 }

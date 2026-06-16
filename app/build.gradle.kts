@@ -65,7 +65,6 @@ android {
             }
         }
     }
-
     buildTypes {
         debug {
             signingConfig = signingConfigs.getByName("release")
@@ -172,6 +171,9 @@ dependencies {
 
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
+
+    implementation(libs.shizuku.api)
+    implementation(libs.shizuku.provider)
 
     implementation(libs.libsu.core)
     implementation(libs.dexkit)

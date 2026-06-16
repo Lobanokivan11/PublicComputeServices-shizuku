@@ -16,6 +16,9 @@ import com.kieronquinn.app.pcs.model.PcsClient.BuildId.Namespace.DEVICE_PERSONAL
 import com.kieronquinn.app.pcs.repositories.PhenotypeRepositoryImpl.Companion.FLAG_REPOSITORY
 import com.kieronquinn.app.pcs.utils.extensions.callSafely
 import com.topjohnwu.superuser.Shell
+import rikka.shizuku.Shizuku
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 /**
  *  Not all apps have Device Config permission so can't read the repository URL. However, those
@@ -63,15 +66,25 @@ class ConfigProvider: ContentProvider() {
     }
 
     private fun getRepositoryUrl(): String? {
-        val out = ArrayList<String>()
-        val result = Shell.getShell()
-            .newJob()
-            .to(out, out)
-            .add("device_config get ${DEVICE_PERSONALIZATION_SERVICES.value} $FLAG_REPOSITORY")
-            .exec()
-        return if (result.isSuccess) {
-            out.first()
-        } else null
+        if (!Shizuku.pingBinder()) return null
+            if (Shizuku.checkSelfPermission() != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                return null
+            }
+            return try {
+                val cmd = "device_config get ${DEVICE_PERSONALIZATION_SERVICES.value} $FLAG_REPOSITORY"
+                val process = Shizuku.newProcess(arrayOf("sh", "-c", cmd), null, null)
+                val reader = BufferedReader(InputStreamReader(process.inputStream))
+                val output = reader.readLine()
+                process.waitFor()
+                if (process.exitValue() == 0 && !output.isNullOrBlank()) {
+                    output.trim()
+                } else {
+                    null
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
     }
 
     override fun query(

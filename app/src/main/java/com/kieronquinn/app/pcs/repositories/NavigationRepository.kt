@@ -37,7 +37,6 @@ interface NavigationRepository {
         data object Loading: Destination()
         data class Error(val type: Type): Destination(R.string.screen_error_title) {
             enum class Type(@StringRes val message: Int) {
-                NO_ROOT(R.string.error_no_root),
                 NO_XPOSED(R.string.error_no_xposed)
             }
         }
